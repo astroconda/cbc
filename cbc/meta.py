@@ -7,34 +7,46 @@ import conda_build.metadata
 import yaml
 from configparser import SafeConfigParser, ExtendedInterpolation
 from collections import OrderedDict
+from .environment import Environment
 
+class SpecError(Exception):
+    pass
 
 class Spec(object):
     def __init__(self, filename, env):
+        
         if not os.path.exists(filename):
-            print('"{0}" does not exist.'.format(filename));
-            return
+            raise OSError('"{0}" does not exist.'.format(filename));
         
-        self.keywords = ['build_ext', 'cgi']
         self.filename = filename
+        
+        if not isinstance(env, Environment):
+            raise SpecError('Expecting instance of cbc.environment.Environment, got: "{0}"'.format(type(env)))
+        
+        self.env = env
+        self.keywords = ['build_ext', 'cgi']
+        
+        
         self.fields = self.convert_conda_fields(conda_build.metadata.FIELDS)
-        
-        config = SafeConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
-        
+        self.config = SafeConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
         # Include built-in Conda metadata fields
-        config.read_dict(self.fields)
-
+        self.config.read_dict(self.fields)
         # Include user-defined build fields
-        config.read(self.filename)
-
+        self.config.read(self.filename)
         # Convert ConfigParser -> dict
-        spec = self.as_dict(config)
+        self.spec = self.as_dict(self.config)
+        
+        self.spec_metadata = {}
+        for keyword in self.keywords:
+            if self.spec[keyword]:
+                self.spec_metadata[keyword] = self.spec[keyword]  
 
         # Convert dict to YAML-compatible dict
-        metadata = self.scrub(spec, self.keywords)
+        self.conda_metadata = self.scrub(self.spec, self.keywords)
 
-        with open(os.path.join(env.config['meta']), 'w+') as metafile:
-            yaml.safe_dump(metadata, metafile, default_flow_style=False, line_break=True, indent=4)
+    def conda_write_meta(self):
+        with open(os.path.join(self.env.config['meta']), 'w+') as metafile:
+            yaml.safe_dump(self.conda_metadata, metafile, default_flow_style=False, line_break=True, indent=4)
 
     def convert_conda_fields(self, fields):
         temp = OrderedDict()
