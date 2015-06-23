@@ -2,8 +2,7 @@ import nose
 import nose.tools
 import os
 import cbc
-from cbc.environment import IncompleteEnv
-from cbc.meta import MetaDataError
+from cbc.exceptions import IncompleteEnv, MetaDataError
 import sys
 
 
