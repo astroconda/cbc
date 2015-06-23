@@ -1,4 +1,5 @@
 *.*project
 *.pyc
 *.DS_Store
+*pycache*
 test/output
