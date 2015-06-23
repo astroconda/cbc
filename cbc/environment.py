@@ -24,7 +24,6 @@ class Environment(object):
         temp_prefix = os.path.basename(os.path.splitext(__name__)[0])
         tempdir = TemporaryDirectory(prefix=temp_prefix, dir=self.cbchome)
         self.working_dir = tempdir.name 
-        time.sleep(10)
         self.config['meta'] = self.join('meta.yaml')
         self.config['build'] = self.join('build.sh')
         self.config['build_windows'] = self.join('bld.bat')
