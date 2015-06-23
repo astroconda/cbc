@@ -8,11 +8,10 @@ import yaml
 from configparser import SafeConfigParser, ExtendedInterpolation
 from collections import OrderedDict
 from .environment import Environment
+from .exceptions import MetaDataError
 
-class SpecError(Exception):
-    pass
 
-class Spec(object):
+class MetaData(object):
     def __init__(self, filename, env):
         
         if not os.path.exists(filename):
@@ -21,10 +20,10 @@ class Spec(object):
         self.filename = filename
         
         if not isinstance(env, Environment):
-            raise SpecError('Expecting instance of cbc.environment.Environment, got: "{0}"'.format(type(env)))
+            raise MetaDataError('Expecting instance of cbc.environment.Environment, got: "{0}"'.format(type(env)))
         
         self.env = env
-        self.keywords = ['build_ext', 'cgi']
+        self.keywords = ['cbc_build', 'cbc_cgi']
         
         
         self.fields = self.convert_conda_fields(conda_build.metadata.FIELDS)
@@ -34,15 +33,18 @@ class Spec(object):
         # Include user-defined build fields
         self.config.read(self.filename)
         # Convert ConfigParser -> dict
-        self.spec = self.as_dict(self.config)
+        self.local = self.as_dict(self.config)
         
-        self.spec_metadata = {}
+        self.local_metadata = {}
         for keyword in self.keywords:
-            if self.spec[keyword]:
-                self.spec_metadata[keyword] = self.spec[keyword]  
+            if keyword in self.local:
+                self.local_metadata[keyword] = self.local[keyword]  
 
         # Convert dict to YAML-compatible dict
-        self.conda_metadata = self.scrub(self.spec, self.keywords)
+        self.conda_metadata = self.scrub(self.local, self.keywords)
+        
+    def run(self):
+        self.conda_write_meta()
 
     def conda_write_meta(self):
         with open(os.path.join(self.env.config['meta']), 'w+') as metafile:
