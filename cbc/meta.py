@@ -46,9 +46,13 @@ class MetaData(object):
     def run(self):
         self.conda_write_meta()
 
-    def conda_write_meta(self):
-        with open(os.path.join(self.env.config['meta']), 'w+') as metafile:
-            yaml.safe_dump(self.conda_metadata, metafile, default_flow_style=False, line_break=True, indent=4)
+    def compile(self):
+        compiled = {}
+        compiled['meta'] = yaml.safe_dump(self.conda_metadata, default_flow_style=False, line_break=True, indent=4)
+        compiled['build_linux'] = self.local_metadata['cbc_build']['linux']
+        #if 'windows' in self.local_metadata['']
+        compiled['build_windows'] = self.local_metadata['cbc_build']['windows']
+        return compiled
 
     def convert_conda_fields(self, fields):
         temp = OrderedDict()
