@@ -1,2 +1,2 @@
 from . import environment
-from cbc import meta
+from . import meta
