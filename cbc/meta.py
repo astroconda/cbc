@@ -5,7 +5,7 @@ And yeah, conda supports Jinja2, but ugh... No.
 import os
 import conda_build.metadata
 import yaml
-from configparser import SafeConfigParser, ExtendedInterpolation
+from configparser import SafeConfigParser, ExtendedInterpolation, ConfigParser
 from collections import OrderedDict
 from .environment import Environment
 from .exceptions import MetaDataError
@@ -27,13 +27,21 @@ class MetaData(object):
         
         
         self.fields = self.convert_conda_fields(conda_build.metadata.FIELDS)
-        self.config = SafeConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
+        #self.config = SafeConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
+        self.config = CBCConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
         # Include built-in Conda metadata fields
         self.config.read_dict(self.fields)
         # Include user-defined build fields
         self.config.read(self.filename)
+        
         # Convert ConfigParser -> dict
         self.local = self.as_dict(self.config)
+        
+        #if not self.local['requirements']['build']:
+        #    raise MetaDataError('Incomplete or missing "requirements" section: self.local[\'requirements\'] ', self.local['requirements']['build'])
+            
+        self.local['requirements']['build'] = self.config.getlist('requirements', 'build')
+        self.local['requirements']['run'] = self.config.getlist('requirements', 'run')
         
         self.local_metadata = {}
         for keyword in self.keywords:
@@ -96,4 +104,29 @@ class MetaData(object):
 
         return the_dict
 
-    
+
+def aslist_cronly(value):
+    if isinstance(value, str):
+        value = filter(None, [x.strip() for x in value.splitlines()])
+    return list(value)
+
+def aslist(value, flatten=True):
+    """ Return a list of strings, separating the input based on newlines
+    and, if flatten=True (the default), also split on spaces within
+    each line."""
+    values = aslist_cronly(value)
+    if not flatten:
+        return values
+    result = []
+    for value in values:
+        subvalues = value.split()
+        result.extend(subvalues)
+    return result
+
+class CBCConfigParser(SafeConfigParser):
+    def getlist(self,section,option):
+        value = self.get(section,option)
+        return list(filter(None, (x.strip() for x in value.splitlines())))
+
+    def getlistint(self,section,option):
+        return [int(x) for x in self.getlist(section,option)]
