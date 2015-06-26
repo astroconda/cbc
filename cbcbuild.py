@@ -4,38 +4,45 @@ import cbc.server
 import conda_build
 import conda_build.metadata
 import conda_build.build
-import threading
-import sys
+import argparse
+import time
+from subprocess import check_output, CalledProcessError
 
+parser = argparse.ArgumentParser()
+parser.add_argument('cbcfile', action='store', nargs='*', help='Build configuration file')
 
-'''Emulated input here
-'''
-sys.argv.append('tests/data/test.ini')
-if len(sys.argv) < 2:
-    print("{0} {{cbc_config}}".format(sys.argv[0]))
-    exit(1)
+input_test = ['tests/data/astropy-helpers.ini', 'tests/data/astropy.ini']
+#input_test = ['tests/data/d2to1.ini']
+args = parser.parse_args(input_test)
 
-os.environ['CBC_HOME'] = os.path.abspath('tests/data/build')
-cbcini = os.path.abspath(sys.argv[1])
+os.environ['CBC_HOME'] = 'tests/data/build'
 env = cbc.environment.Environment()
-metadata = cbc.meta.MetaData(cbcini, env)
 
-# Write out conda compatible metadata and build scripts
-for maskkey, maskval in env.config['script'].items():
-    for metakey, metaval in metadata.compile().items():
-        if metakey in maskkey:
-            with open(maskval, 'w+') as metafile:
-                metafile.write(metaval)
 
-conda_metadata = conda_build.metadata.MetaData(env.cbchome)
-
-if metadata.local_metadata['cbc_cgi']['local_server']:
-    fileserver_thread = threading.Thread(target=cbc.server.FileServer,
-                          args=([metadata.local_metadata['cbc_cgi']['local_port'],
-                                metadata.local_metadata['cbc_cgi']['local_sources'],
-                                True]),
-                          daemon=True)
-    fileserver_thread.start()
-
-#conda_build.build.rm_pkgs_cache(conda_metadata.dist())
-conda_build.build.build(conda_metadata, get_src=True, verbose=True)
+for cbcfile in args.cbcfile:
+    # Ensure the working directory remains stable per build.
+    os.chdir(env.pwd)
+    
+    metadata = cbc.meta.MetaData(cbcfile, env)
+    metadata.env.mkpkgdir(metadata.local['package']['name'])   
+    metadata.render_scripts()
+    
+    conda_metadata = conda_build.metadata.MetaData(env.pkgdir)
+    
+    if 'cbc_cgi' in metadata.local_metadata:    
+        if metadata.local_metadata['cbc_cgi']['local_server']:
+            fileserver = cbc.server.FileServer(metadata.local_metadata['cbc_cgi']['local_port'],
+                                  metadata.local_metadata['cbc_cgi']['local_sources'],
+                                  run=True)
+    
+    conda_build.build.build(conda_metadata, get_src=True, verbose=True)
+    
+    # Until I can figure out a good way to build with the conda API
+    # we'll use the CLI:
+    command = 'conda install --use-local --yes {0}'.format(conda_metadata.name()).split()
+    try:
+        for line in (check_output(command).decode('utf-8').splitlines()):
+            print(line)
+    except CalledProcessError as cpe:
+        print('{0} exit={1}'.format(cpe.cmd, cpe.returncode))
+    
