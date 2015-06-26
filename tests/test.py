@@ -55,7 +55,7 @@ class TestCBC(object):
     def test_spec_outputs_valid_conda_metadata(self):
         import conda_build.metadata
         cbc_meta = cbc.meta.MetaData(self.ini, self.env)
-        cbc_meta.conda_write_meta()
+        #cbc_meta.conda_write_meta()
         
         # Test against conda's build system
         conda_meta = conda_build.metadata.MetaData(self.env.cbchome)
