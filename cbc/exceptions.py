@@ -3,3 +3,6 @@ class IncompleteEnv(Exception):
 
 class MetaDataError(Exception):
     pass
+
+class CondaBuildError(Exception):
+    pass

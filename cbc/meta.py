@@ -5,7 +5,7 @@ And yeah, conda supports Jinja2, but ugh... No.
 import os
 import conda_build.metadata
 import yaml
-from configparser import SafeConfigParser, ExtendedInterpolation, ConfigParser
+from configparser import SafeConfigParser, ExtendedInterpolation
 from collections import OrderedDict
 from .environment import Environment
 from .exceptions import MetaDataError

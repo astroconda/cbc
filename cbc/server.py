@@ -1,3 +1,4 @@
+import argparse
 import os
 import http.server
 import socketserver
@@ -24,17 +25,31 @@ class FileServer(object):
         if run:
             self.run()
 
-    def run(self):
+    def run(self, forever=False):
         os.chdir(self.root)
         socketserver.TCPServer.allow_reuse_address = True
         self.httpd = Server(('localhost', self.port), self.handler, True)
-        #self.httpd.allow_reuse_address = True
-        #self.httpd.server_bind()
-        #self.httpd.server_activate()
         print('{0} active on port {1} ({2})'.format(self.__class__.__name__, self.port, self.root))
-
-        th = Thread(target=self.httpd.handle_request, args=(), daemon=True)
-        th.start()
+        if not forever:
+            self.httpd.handle_request()
+        else:
+            self.httpd.serve_forever()
+        self.close()
 
     def close(self):
         self.httpd.server_close()
+        
+if __name__ == '__main__':    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--root', default=os.path.abspath(os.curdir), help='Path to files')
+    parser.add_argument('-p', '--port', type=int, default=8888, help='TCP port')
+    parser.add_argument('-s', '--single', action='store_false')
+    args = parser.parse_args()
+    
+    fileserver = FileServer(args.port, args.root)
+    fileserver.run(forever=args.single)
+    
+    
+    
+    
+    
