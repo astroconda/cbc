@@ -14,6 +14,7 @@ from .exceptions import MetaDataError
 class MetaData(object):
     def __init__(self, filename, env):
         
+        filename = os.path.abspath(filename)
         if not os.path.exists(filename):
             raise OSError('"{0}" does not exist.'.format(filename));
         
@@ -39,9 +40,10 @@ class MetaData(object):
         
         #if not self.local['requirements']['build']:
         #    raise MetaDataError('Incomplete or missing "requirements" section: self.local[\'requirements\'] ', self.local['requirements']['build'])
-            
-        self.local['requirements']['build'] = self.config.getlist('requirements', 'build')
-        self.local['requirements']['run'] = self.config.getlist('requirements', 'run')
+        
+        # Convert requirements to lists
+        for section in self.local['requirements'].keys():
+            self.local['requirements'][section] = self.config.getlist('requirements', section)
         
         self.local_metadata = {}
         for keyword in self.keywords:
@@ -52,7 +54,16 @@ class MetaData(object):
         self.conda_metadata = self.scrub(self.local, self.keywords)
         
     def run(self):
-        self.conda_write_meta()
+        self.render_scripts()
+
+    def render_scripts(self):
+        for maskkey, maskval in self.env.config['script'].items():
+            for metakey, metaval in self.compile().items():
+                if metakey in maskkey:
+                    with open(maskval, 'w+') as metafile:
+                        print("Writing: {0}".format(maskval))
+                        metafile.write(metaval)
+
 
     def compile(self):
         compiled = {}
