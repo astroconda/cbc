@@ -21,7 +21,7 @@ class Environment(object):
             self.cbchome = self.environ['CBC_HOME']
         
         if self.cbchome is None:
-            raise IncompleteEnv('Environment.cbchome is undefined')
+            raise IncompleteEnv('CBC_HOME is undefined.')
         
         
         self.cbchome = os.path.abspath(self.cbchome)

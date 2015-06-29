@@ -24,7 +24,7 @@ class MetaData(object):
             raise MetaDataError('Expecting instance of cbc.environment.Environment, got: "{0}"'.format(type(env)))
         
         self.env = env
-        self.keywords = ['cbc_build', 'cbc_cgi']
+        self.builtins = ['cbc_build', 'cbc_cgi']
         
         
         self.fields = self.convert_conda_fields(conda_build.metadata.FIELDS)
@@ -35,33 +35,45 @@ class MetaData(object):
         # Include user-defined build fields
         self.config.read(self.filename)
         
-        # Convert ConfigParser -> dict
+        # Convert ConfigParser -> generic dictionary
         self.local = self.as_dict(self.config)
         
         #if not self.local['requirements']['build']:
         #    raise MetaDataError('Incomplete or missing "requirements" section: self.local[\'requirements\'] ', self.local['requirements']['build'])
         
         # Convert requirements to lists
-        for section in self.local['requirements'].keys():
-            self.local['requirements'][section] = self.config.getlist('requirements', section)
+        #for section in self.local['requirements'].keys():
+        #    self.local['requirements'][section] = self.config.getlist('requirements', section)
+        
+        #Field list conversion table taken from conda_build.metadata:
+        for field in ('source/patches',
+                      'build/entry_points', 'build/script_env',
+                      'build/features', 'build/track_features',
+                      'requirements/build', 'requirements/run',
+                      'requirements/conflicts', 'test/requires',
+                      'test/files', 'test/commands', 'test/imports'):
+            section, key = field.split('/')
+            if self.local[section][key]:
+                self.local[section][key] = self.config.getlist(section, key)
         
         self.local_metadata = {}
-        for keyword in self.keywords:
+        for keyword in self.builtins:
             if keyword in self.local:
                 self.local_metadata[keyword] = self.local[keyword]  
 
         # Convert dict to YAML-compatible dict
-        self.conda_metadata = self.scrub(self.local, self.keywords)
+        self.conda_metadata = self.scrub(self.local, self.builtins)
         
     def run(self):
         self.render_scripts()
 
     def render_scripts(self):
+        '''Write all conda scripts
+        '''
         for maskkey, maskval in self.env.config['script'].items():
             for metakey, metaval in self.compile().items():
                 if metakey in maskkey:
                     with open(maskval, 'w+') as metafile:
-                        print("Writing: {0}".format(maskval))
                         metafile.write(metaval)
 
 
