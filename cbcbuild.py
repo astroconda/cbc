@@ -8,7 +8,7 @@ import conda_build.metadata
 
 
 
-os.environ['CBC_HOME'] = 'tests/data/build'
+os.environ['CBC_HOME'] = os.path.abspath(os.path.join(os.path.dirname(cbc.__file__), 'tests/data/build'))
 #sys.argv.append('--force-rebuild')
 #sys.argv.append('tests/data/aprio.ini')
 
@@ -18,6 +18,9 @@ if __name__ == '__main__':
     parser.add_argument('--force-rebuild', 
                         action='store_true', 
                         help='Do not stop if package already installed')
+    parser.add_argument('--no-build', 
+                        action='store_true',
+                        help='Generate metadata from cbc configuration (useful for manual building)')
     parser.add_argument('cbcfile',
                         nargs='+', 
                         help='CBC metadata')
@@ -47,6 +50,9 @@ if __name__ == '__main__':
         metadata = cbc.meta.MetaData(cbcfile, env)
         metadata.env.mkpkgdir(metadata.local['package']['name'])
         metadata.render_scripts()
+        
+        if args.no_build:
+            continue
         
         conda_metadata = conda_build.metadata.MetaData(env.pkgdir)
         

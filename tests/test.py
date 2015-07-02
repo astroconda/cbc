@@ -55,12 +55,13 @@ class TestCBC(object):
     def test_spec_outputs_valid_conda_metadata(self):
         import conda_build.metadata
         cbc_meta = cbc.meta.MetaData(self.ini, self.env)
-        #cbc_meta.conda_write_meta()
+        cbc_meta.env.mkpkgdir(cbc_meta.local['package']['name'])
+        cbc_meta.render_scripts()
         
         # Test against conda's build system
-        conda_meta = conda_build.metadata.MetaData(self.env.cbchome)
+        conda_meta = conda_build.metadata.MetaData(self.env.pkgdir)
         nose.tools.assert_is_instance(conda_meta, conda_build.metadata.MetaData)
-        nose.tools.assert_equal(conda_meta.dist(), 'test-1.0.0-1')
+        nose.tools.assert_equal(conda_meta.dist(), 'test-1.0.0-py34_1')
         
         
         
