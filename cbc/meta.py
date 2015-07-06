@@ -4,7 +4,10 @@ And yeah, conda supports Jinja2, but ugh... No.
 
 import os
 import conda_build.metadata
+import conda_build.environ
 import yaml
+import shutil
+from glob import glob
 from configparser import SafeConfigParser, ExtendedInterpolation
 from collections import OrderedDict
 from .environment import Environment
@@ -19,12 +22,13 @@ class MetaData(object):
             raise OSError('"{0}" does not exist.'.format(filename));
         
         self.filename = filename
+        self.confdir = os.path.dirname(self.filename)
         
         if not isinstance(env, Environment):
             raise MetaDataError('Expecting instance of cbc.environment.Environment, got: "{0}"'.format(type(env)))
         
         self.env = env
-        self.builtins = ['cbc_build', 'cbc_cgi']
+        self.builtins = ['cbc_build', 'cbc_cgi', 'environ']
         
         
         self.fields = self.convert_conda_fields(conda_build.metadata.FIELDS)
@@ -34,10 +38,12 @@ class MetaData(object):
         self.config.read_dict(self.fields)
         # Include user-defined build fields
         self.config.read(self.filename)
+        # Assimilate conda environment variables
+        self.config['environ'] = conda_build.environ.get_dict()
         
         # Convert ConfigParser -> generic dictionary
         self.local = self.as_dict(self.config)
-        
+
         #if not self.local['requirements']['build']:
         #    raise MetaDataError('Incomplete or missing "requirements" section: self.local[\'requirements\'] ', self.local['requirements']['build'])
         
@@ -63,7 +69,7 @@ class MetaData(object):
 
         # Convert dict to YAML-compatible dict
         self.conda_metadata = self.scrub(self.local, self.builtins)
-        
+
     def run(self):
         self.render_scripts()
 
@@ -76,6 +82,12 @@ class MetaData(object):
                     with open(maskval, 'w+') as metafile:
                         metafile.write(metaval)
 
+    def copy_patches(self):
+        extensions = ['*.diff', '*.patch']
+        for extension in extensions:
+            path = os.path.join(self.confdir, extension)
+            for patch in glob(path):
+                shutil.copy2(patch, self.env.pkgdir)
 
     def compile(self):
         compiled = {}

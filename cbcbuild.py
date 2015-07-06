@@ -40,7 +40,8 @@ if __name__ == '__main__':
         elif not os.path.isfile(cbcfile):
             print('{} is not a file.'.format(cbcfile))
             exit(1)
-        
+    
+    print('CBC_HOME is {0}'.format(os.environ['CBC_HOME']))
     # Perform build(s)
     for cbcfile in args.cbcfile:
         print('Using cbc build configuration: {0}'.format(cbcfile))
@@ -50,8 +51,10 @@ if __name__ == '__main__':
         metadata = cbc.meta.MetaData(cbcfile, env)
         metadata.env.mkpkgdir(metadata.local['package']['name'])
         metadata.render_scripts()
+        metadata.copy_patches()
         
         if args.no_build:
+            print('Scripts written to {0}'.format(metadata.env.pkgdir))
             continue
         
         conda_metadata = conda_build.metadata.MetaData(env.pkgdir)
