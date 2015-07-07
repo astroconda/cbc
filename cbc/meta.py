@@ -8,7 +8,7 @@ import conda_build.environ
 import yaml
 import shutil
 from glob import glob
-from configparser import SafeConfigParser, ExtendedInterpolation
+from configparser import ConfigParser, ExtendedInterpolation
 from collections import OrderedDict
 from .environment import Environment
 from .exceptions import MetaDataError
@@ -28,14 +28,17 @@ class MetaData(object):
             raise MetaDataError('Expecting instance of cbc.environment.Environment, got: "{0}"'.format(type(env)))
         
         self.env = env
-        self.builtins = ['cbc_build', 'cbc_cgi', 'environ']
-        
+        self.builtins = ['cbc_build', 'cbc_cgi', 'settings', 'environ']
         
         self.fields = self.convert_conda_fields(conda_build.metadata.FIELDS)
         #self.config = SafeConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
         self.config = CBCConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
         # Include built-in Conda metadata fields
         self.config.read_dict(self.fields)
+        
+        if self.env.configrc is not None:
+            self.config.read_dict(self.as_dict(self.env.configrc))
+        
         # Include user-defined build fields
         self.config.read(self.filename)
         # Assimilate conda environment variables
@@ -44,13 +47,6 @@ class MetaData(object):
         # Convert ConfigParser -> generic dictionary
         self.local = self.as_dict(self.config)
 
-        #if not self.local['requirements']['build']:
-        #    raise MetaDataError('Incomplete or missing "requirements" section: self.local[\'requirements\'] ', self.local['requirements']['build'])
-        
-        # Convert requirements to lists
-        #for section in self.local['requirements'].keys():
-        #    self.local['requirements'][section] = self.config.getlist('requirements', section)
-        
         #Field list conversion table taken from conda_build.metadata:
         for field in ('source/patches',
                       'build/entry_points', 'build/script_env',
@@ -158,7 +154,7 @@ def aslist(value, flatten=True):
         result.extend(subvalues)
     return result
 
-class CBCConfigParser(SafeConfigParser):
+class CBCConfigParser(ConfigParser):
     def getlist(self,section,option):
         value = self.get(section,option)
         return list(filter(None, (x.strip() for x in value.splitlines())))
