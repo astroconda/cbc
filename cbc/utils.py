@@ -8,16 +8,20 @@ def conda_search(pkgname):
     proc = Popen(command, stdout=PIPE)
     out, _ = proc.communicate()    
     
+    found = ''
     for line in out.decode('utf-8').splitlines():
         if line.startswith('#'):
             continue
-        line = line.split();
-        break
-    
+
+        line = line.split()
+        
+        if line[0] == pkgname:
+            found = line[:3]
+        
     if not line:
         return ''
     
-    return '-'.join(line)
+    return '-'.join(found)
 
 
 def conda_install(pkgname):
@@ -50,12 +54,13 @@ def conda_builder(metadata, args):
 
     bad_egg = 'UNKNOWN.egg-info'
     command = ['conda', 'build', metadata.env.pkgdir ]
-        
+
     try:
-        for line in (check_output(command).decode('utf-8').splitlines()):
+        for line in (check_output(command, stderr=STDOUT).decode('utf-8').splitlines()):
             if line.startswith('#'):
                 continue
             print(line)
+            
             if bad_egg in line:
                 raise CondaBuildError('Bad setuptools metadata produced UNKNOWN.egg-info instead of {0}*.egg-info!'.format(metadata.local['package']['name']))          
     #OK Conda, let's play rough. stdout/stderr only, no exit for you.
