@@ -6,12 +6,9 @@ import cbc
 import conda_build.metadata
 
 
-
-
-os.environ['CBC_HOME'] = os.path.abspath(os.path.join(os.path.dirname(cbc.__file__), 'tests/data/build'))
+#os.environ['CBC_HOME'] = os.path.abspath(os.path.join(os.path.dirname(cbc.__file__), 'tests/data/build'))
 #sys.argv.append('--force-rebuild')
 #sys.argv.append('tests/data/aprio.ini')
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -41,7 +38,7 @@ if __name__ == '__main__':
             print('{} is not a file.'.format(cbcfile))
             exit(1)
     
-    print('CBC_HOME is {0}'.format(os.environ['CBC_HOME']))
+    print('CBC_HOME is {0}'.format(env.cbchome))
     # Perform build(s)
     for cbcfile in args.cbcfile:
         print('Using cbc build configuration: {0}'.format(cbcfile))
@@ -52,11 +49,13 @@ if __name__ == '__main__':
         metadata.env.mkpkgdir(metadata.local['package']['name'])
         metadata.render_scripts()
         metadata.copy_patches()
+
+        print('Scripts written to {0}'.format(metadata.env.pkgdir))
         
         if args.no_build:
-            print('Scripts written to {0}'.format(metadata.env.pkgdir))
             continue
         
+        print('Generating Conda metadata...')
         conda_metadata = conda_build.metadata.MetaData(env.pkgdir)
         
         if not args.force_rebuild:
@@ -65,23 +64,23 @@ if __name__ == '__main__':
                 continue
         
         conda_builder_args = {'get_src': True, 'verbose': False}
-        
         try:
+            print('Initializing Conda build...')
             built = cbc.utils.conda_builder(metadata, conda_builder_args)
             if not built:
-                print('Failure occurred while building: {0}'.format(conda_metadata.dist()))
+                print('Failure occurred building: {0}'.format(conda_metadata.dist()))
                 continue
         except cbc.exceptions.CondaBuildError as cbe:
             print(cbe)
             continue
         
+        print('Installing Conda package...')
         package_exists = cbc.utils.conda_search(conda_metadata.name())
+
         if not package_exists:
             cbc.utils.conda_install(conda_metadata.name())
-        elif package_exists and args.force_rebuild:
-            cbc.utils.conda_reinstall(conda_metadata.name())
+        elif package_exists:
+            if args.force_rebuild:
+                cbc.utils.conda_reinstall(conda_metadata.name())
         
         print('')
-        
-        
-            
