@@ -1,6 +1,6 @@
 import os
 from .exceptions import IncompleteEnv
-from tempfile import TemporaryDirectory
+from configparser import ConfigParser, ExtendedInterpolation
 import time
 
 
@@ -11,6 +11,8 @@ class Environment(object):
         self.cbchome = None
         self.pwd = os.path.abspath(os.curdir)
         self.pkgdir = None
+        self.rcpath = os.path.expanduser('~/.cbcrc')
+        self.configrc = None
         
         if 'CBC_HOME' in kwargs:
             self.cbchome = kwargs['CBC_HOME']
@@ -19,14 +21,23 @@ class Environment(object):
         # passed to the class.
         if 'CBC_HOME' in self.environ:
             self.cbchome = self.environ['CBC_HOME']
+
+        if os.path.exists(self.rcpath):
+            if os.path.isfile(self.rcpath):
+                self.configrc = ConfigParser(interpolation=ExtendedInterpolation())
+                self.configrc.read(self.rcpath)
+        
+        if 'settings' in self.configrc.sections():
+            if 'path' in self.configrc['settings']:
+                self.cbchome = self.configrc['settings']['path']
         
         if self.cbchome is None:
             raise IncompleteEnv('CBC_HOME is undefined.')
         
-        
         self.cbchome = os.path.abspath(self.cbchome)
         if not os.path.exists(self.cbchome):
             os.makedirs(self.cbchome)
+
         
     def _script_meta(self):
         self.config['script'] = {}
@@ -48,9 +59,5 @@ class Environment(object):
         self.pkgdir = pkgdir
         self._script_meta()
         
-    '''
-    def local_temp(self):
-        temp_prefix = os.path.basename(os.path.splitext(__name__)[0])
-        return TemporaryDirectory(prefix=temp_prefix, dir=self.cbchome)        
-    '''     
+
         
