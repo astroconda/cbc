@@ -1,49 +1,45 @@
-'''I refuse to write the same thing over and over again in meta.yaml.
-And yeah, conda supports Jinja2, but ugh... No.
-'''
-
 import os
 import conda_build.metadata
 import conda_build.environ
 import yaml
 import shutil
 from glob import glob
-from configparser import ConfigParser, ExtendedInterpolation
 from collections import OrderedDict
+from .parsers import CBCConfigParser, ExtendedInterpolation
 from .environment import Environment
 from .exceptions import MetaDataError
 
 
 class MetaData(object):
     def __init__(self, filename, env):
-        
+
         filename = os.path.abspath(filename)
         if not os.path.exists(filename):
             raise OSError('"{0}" does not exist.'.format(filename));
-        
+
         self.filename = filename
         self.confdir = os.path.dirname(self.filename)
-        
+
         if not isinstance(env, Environment):
             raise MetaDataError('Expecting instance of cbc.environment.Environment, got: "{0}"'.format(type(env)))
-        
+
         self.env = env
         self.builtins = ['cbc_build', 'cbc_cgi', 'settings', 'environ']
-        
+
         self.fields = self.convert_conda_fields(conda_build.metadata.FIELDS)
-        #self.config = SafeConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
         self.config = CBCConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
+
         # Include built-in Conda metadata fields
         self.config.read_dict(self.fields)
-        
+
         if self.env.configrc is not None:
             self.config.read_dict(self.as_dict(self.env.configrc))
-        
+
         # Include user-defined build fields
         self.config.read(self.filename)
         # Assimilate conda environment variables
         self.config['environ'] = conda_build.environ.get_dict()
-        
+
         # Convert ConfigParser -> generic dictionary
         self.local = self.as_dict(self.config)
 
@@ -57,11 +53,11 @@ class MetaData(object):
             section, key = field.split('/')
             if self.local[section][key]:
                 self.local[section][key] = self.config.getlist(section, key)
-        
+
         self.local_metadata = {}
         for keyword in self.builtins:
             if keyword in self.local:
-                self.local_metadata[keyword] = self.local[keyword]  
+                self.local_metadata[keyword] = self.local[keyword]
 
         # Convert dict to YAML-compatible dict
         self.conda_metadata = self.scrub(self.local, self.builtins)
@@ -111,7 +107,10 @@ class MetaData(object):
                 if isinstance(val, dict):
                     val = self.scrub(val)
                 if val is None or val == {} or not val:
-                    del obj[key]
+                    try:
+                        del obj[key]
+                    except KeyError as err:
+                        print(err)
 
         return obj
 
@@ -134,30 +133,3 @@ class MetaData(object):
                         pass
 
         return the_dict
-
-
-def aslist_cronly(value):
-    if isinstance(value, str):
-        value = filter(None, [x.strip() for x in value.splitlines()])
-    return list(value)
-
-def aslist(value, flatten=True):
-    """ Return a list of strings, separating the input based on newlines
-    and, if flatten=True (the default), also split on spaces within
-    each line."""
-    values = aslist_cronly(value)
-    if not flatten:
-        return values
-    result = []
-    for value in values:
-        subvalues = value.split()
-        result.extend(subvalues)
-    return result
-
-class CBCConfigParser(ConfigParser):
-    def getlist(self,section,option):
-        value = self.get(section,option)
-        return list(filter(None, (x.strip() for x in value.splitlines())))
-
-    def getlistint(self,section,option):
-        return [int(x) for x in self.getlist(section,option)]
