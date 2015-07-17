@@ -2,4 +2,9 @@
 *.pyc
 *.DS_Store
 *pycache*
-test/output
+*.egg-info
+dist/
+build/
+RELEASE-VERSION
+cbc/tests/output
+cbc/tests/data/output

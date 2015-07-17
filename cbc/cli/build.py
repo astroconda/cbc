@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 import argparse
 import os
-import sys
-import cbc
 import conda_build.metadata
+import cbc
 
 
-#os.environ['CBC_HOME'] = os.path.abspath(os.path.join(os.path.dirname(cbc.__file__), 'tests/data/build'))
-#sys.argv.append('--force-rebuild')
-#sys.argv.append('tests/data/aprio.ini')
-
-if __name__ == '__main__':
+def main():
     no_upload = ''
     use_local = ''
 
@@ -99,3 +94,7 @@ if __name__ == '__main__':
                 cbc.utils.conda_reinstall(conda_metadata.name())
 
         print('')
+
+
+if __name__ == '__main__':
+    main()

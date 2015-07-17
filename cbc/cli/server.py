@@ -37,17 +37,17 @@ class FileServer(object):
         self.httpd.server_close()
 
 
-if __name__ == '__main__':    
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--root', default=os.path.abspath(os.curdir), help='Path to files')
     parser.add_argument('-p', '--port', type=int, default=8888, help='TCP port')
     parser.add_argument('-s', '--single', action='store_false')
     args = parser.parse_args()
-    
+
     fileserver = FileServer(args.port, args.root)
     fileserver.run(forever=args.single)
-    
-    
-    
-    
-    
+
+
+if __name__ == '__main__':
+    main()
+
