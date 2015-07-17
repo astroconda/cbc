@@ -1,73 +1,95 @@
+import json
 from .meta import MetaData
 from .exceptions import CondaBuildError
-from subprocess import Popen, PIPE, STDOUT, check_call, check_output, CalledProcessError
+from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
 
 
-def conda_search(pkgname):
-    command = ['conda', 'list', pkgname]
-    proc = Popen(command, stdout=PIPE)
-    out, _ = proc.communicate()    
-    
-    found = ''
-    for line in out.decode('utf-8').splitlines():
-        if line.startswith('#'):
-            continue
+def combine_args(args):
+    if not isinstance(args, list):
+        raise TypeError('Expecting a list instance, got: {0}'.format(type(args)))
 
-        line = line.split()
-        
-        if line[0] == pkgname:
-            found = line[:3]
-        
-    if not line:
+    if not args:
         return ''
-    
-    return '-'.join(found)
+
+    return ' '.join(args)
+
+def run_process(command, callback=None):
+    if not isinstance(command, list):
+        raise TypeError('Expecting a list instance, got: {0}'.format(type(command)))
+    process = Popen(command, stdout=PIPE)
+    while True:
+        output = process.stdout.readline()
+        output = output.decode()
+        if not output and process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+            # Perform user-defined parsing of output
+            if callback is not None:
+                if not callback(output.strip()):
+                    process.kill()
+
+    return process.poll()
 
 
-def conda_install(pkgname):
+def conda_search(metadata):
+    pkgname = metadata.name()
+    command = ['conda', 'search', '--json', pkgname]
+    proc = Popen(command, stdout=PIPE)
+    out, _ = proc.communicate()
+
+    output = out.decode('utf-8').strip()
+    data = json.loads(output)
+    if pkgname in data:
+        for pkg in data[pkgname]:
+            if pkg['installed']:
+                return '-'.join([pkg['name'],
+                                 pkg['version'],
+                                 pkg['build']])
+
+    return ''
+
+
+def conda_install(pkgname, args=[]):
     # Until I can figure out a good way to build with the conda API
     # we'll use the CLI interface:
-    command = 'conda install --use-local --yes {0}'.format(pkgname).split()
+    command = 'conda install --yes {0} {1}'.format(combine_args(args), pkgname).split()
     try:
-        for line in (check_output(command).decode('utf-8').splitlines()):
-            print(line)
+        run_process(command)
     except CalledProcessError as cpe:
         print('{0}\nexit={1}'.format(' '.join(cpe.cmd), cpe.returncode))
 
 
-def conda_reinstall(pkgname):
+def conda_reinstall(pkgname, args=[]):
     # Until I can figure out a good way to build with the conda API
     # we'll use the CLI interface:
     commands = ['conda remove --yes {0}'.format(pkgname).split(),
-                'conda install --use-local --yes {0}'.format(pkgname).split()]
+                'conda install --yes {0} {1}'.format(combine_args(args), pkgname).split()]
     for command in commands:
         try:
-            for line in (check_output(command).decode('utf-8').splitlines()):
-                print(line)
+            run_process(command)
         except CalledProcessError as cpe:
-            print('{0}\nexit={1}'.format(' '.join(cpe.cmd), cpe.returncode))
+            print('{0}\nexit={1}'.format(combine_args(cpe.cmd), cpe.returncode))
 
 
-def conda_builder(metadata, args):
+def conda_builder(metadata, args=[]):
     if not isinstance(metadata, MetaData):
         raise CondaBuildError('Expecting instance of conda_build.metadata.MetaData, got: "{0}"'.format(type(metadata)))
 
-    bad_egg = 'UNKNOWN.egg-info'
-    command = ['conda', 'build', metadata.env.pkgdir ]
+    def check_bad_egg(output):
+        bad_egg = 'UNKNOWN.egg-info'
+        if bad_egg in output:
+            raise CondaBuildError('Bad setuptools metadata produced UNKNOWN.egg-info instead of {0}*.egg-info!'.format(metadata.local['package']['name']))
+
+    command = 'conda build {0} {1}'.format(combine_args(args), metadata.env.pkgdir).split()
 
     try:
-        for line in (check_output(command, stderr=STDOUT).decode('utf-8').splitlines()):
-            if line.startswith('#'):
-                continue
-            print(line)
-            
-            if bad_egg in line:
-                raise CondaBuildError('Bad setuptools metadata produced UNKNOWN.egg-info instead of {0}*.egg-info!'.format(metadata.local['package']['name']))          
+        run_process(command, check_bad_egg)
     #OK Conda, let's play rough. stdout/stderr only, no exit for you.
     except SystemExit:
         print('Discarding SystemExit issued by setuptools')
     except CalledProcessError as cpe:
         print(cpe)
         return False
-    
+
     return True
