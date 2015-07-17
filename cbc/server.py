@@ -7,9 +7,6 @@ from threading import Thread
 
 class Server(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
-    #def server_bind(self):
-    #    self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    #    self.socket.bind(self.server_address)
 
 
 class FileServer(object):
@@ -38,7 +35,8 @@ class FileServer(object):
 
     def close(self):
         self.httpd.server_close()
-        
+
+
 if __name__ == '__main__':    
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--root', default=os.path.abspath(os.curdir), help='Path to files')
