@@ -1,7 +1,8 @@
 import os
-from .exceptions import IncompleteEnv
-from configparser import ConfigParser, ExtendedInterpolation
 import time
+from .exceptions import IncompleteEnv
+from .parsers import CBCConfigParser, ExtendedInterpolation
+
 
 
 class Environment(object):
@@ -24,13 +25,15 @@ class Environment(object):
 
         if os.path.exists(self.rcpath):
             if os.path.isfile(self.rcpath):
-                self.configrc = ConfigParser(interpolation=ExtendedInterpolation())
+                self.configrc = CBCConfigParser(interpolation=ExtendedInterpolation())
                 self.configrc.read(self.rcpath)
         
         if 'settings' in self.configrc.sections():
             if 'path' in self.configrc['settings']:
                 self.cbchome = self.configrc['settings']['path']
-        
+                if not self.cbchome:
+                    raise IncompleteEnv('.cbcrc empty path detected. Check: settings -> path')
+
         if self.cbchome is None:
             raise IncompleteEnv('CBC_HOME is undefined.')
         
