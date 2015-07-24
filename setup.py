@@ -2,9 +2,6 @@ import os
 from setuptools import setup, find_packages
 from cbc.extern.version import get_git_version
 
-NAME = 'cbc'
-VERSION = get_git_version()
-
 entry_points = {}
 package_data = {}
 
@@ -18,8 +15,16 @@ package_data[''] = ['*.txt', '*.md']
 test_suite = 'cbc.tests:main'
 
 cbcpkg = os.path.join('cbc', 'version.py')
+
+#Omit git hash and let setuptools add a valid build number
+git_version = get_git_version()
+git_version = git_version[:git_version.rfind('-')]
+
 with open(cbcpkg, 'w+') as version_data:
-    version_data.write('__version__ = {0}\n'.format(get_git_version()))
+    version_data.write('__version__ = "{0}"\n'.format(git_version))
+
+NAME = 'cbc'
+VERSION = git_version
 
 setup(
     name=NAME,
