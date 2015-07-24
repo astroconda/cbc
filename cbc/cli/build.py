@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 import argparse
 import os
+import traceback
 import conda_build.metadata
 import cbc
-
+from cbc.exceptions import CondaBuildError
 
 def main():
     no_upload = ''
@@ -80,8 +81,8 @@ def main():
             if not built:
                 print('Failure occurred building: {0}'.format(conda_metadata.dist()))
                 continue
-        except cbc.exceptions.CondaBuildError as cbe:
-            print(cbe)
+        except CondaBuildError as cbe:
+            print(traceback.format_exc())
             continue
 
         print('Installing Conda package...')

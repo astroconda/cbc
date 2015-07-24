@@ -6,5 +6,6 @@
 dist/
 build/
 RELEASE-VERSION
+cbc/version.py
 cbc/tests/output
 cbc/tests/data/output

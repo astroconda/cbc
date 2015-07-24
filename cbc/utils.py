@@ -1,4 +1,6 @@
 import json
+import sys
+import inspect
 from .meta import MetaData
 from .exceptions import CondaBuildError
 from subprocess import Popen, PIPE, STDOUT, check_output, CalledProcessError
@@ -13,23 +15,42 @@ def combine_args(args):
 
     return ' '.join(args)
 
-def run_process(command, callback=None):
-    if not isinstance(command, list):
-        raise TypeError('Expecting a list instance, got: {0}'.format(type(command)))
-    process = Popen(command, stdout=PIPE)
-    while True:
-        output = process.stdout.readline()
-        output = output.decode()
-        if not output and process.poll() is not None:
-            break
-        if output:
-            print(output.strip())
-            # Perform user-defined parsing of output
-            if callback is not None:
-                if not callback(output.strip()):
-                    process.kill()
+def run_process(command, callbacks=None):
+    callback_failed = False
+    callback_status = None
+    callback_message = ''
+    process = Popen(command, stdout=PIPE, stderr=STDOUT)
 
-    return process.poll()
+    # Poll process for new output until finished
+    while True:
+        nextline = process.stdout.readline().decode()
+        if nextline == '' and process.poll() != None:
+            break
+        sys.stdout.write(nextline)
+        sys.stdout.flush()
+
+    output = process.communicate()[0]
+    output = output.decode()
+
+    #Callbacks don't work yet. Sigh.
+    if callbacks is not None:
+        if not isinstance(callbacks, list):
+            raise TypeError('Expecting a list instance, got: {0}'.format(type(command)))
+
+        for callback in callbacks:
+            callback_status, callback_message = callback(output)
+            if not callback_status:
+                callback_failed = True
+                #Stop processing future callbacks here?
+
+    exitCode = process.returncode
+
+    if callback_failed:
+        raise CondaBuildError(callback_message)
+    elif exitCode == 0:
+        return exitCode
+    else:
+        raise CalledProcessError(exitCode, combine_args(command))
 
 
 def conda_search(metadata):
@@ -57,7 +78,7 @@ def conda_install(pkgname, args=[]):
     try:
         run_process(command)
     except CalledProcessError as cpe:
-        print('{0}\nexit={1}'.format(' '.join(cpe.cmd), cpe.returncode))
+        print(cpe)
 
 
 def conda_reinstall(pkgname, args=[]):
@@ -69,7 +90,7 @@ def conda_reinstall(pkgname, args=[]):
         try:
             run_process(command)
         except CalledProcessError as cpe:
-            print('{0}\nexit={1}'.format(combine_args(cpe.cmd), cpe.returncode))
+            print(cpe)
 
 
 def conda_builder(metadata, args=[]):
@@ -79,13 +100,14 @@ def conda_builder(metadata, args=[]):
     def check_bad_egg(output):
         bad_egg = 'UNKNOWN.egg-info'
         if bad_egg in output:
-            raise CondaBuildError('Bad setuptools metadata produced UNKNOWN.egg-info instead of {0}*.egg-info!'.format(metadata.local['package']['name']))
+            return False, '{0}: Bad setuptools metadata produced UNKNOWN.egg-info instead of {1}*.egg-info!'.format(inspect.currentframe().f_code.co_name, metadata.local['package']['name'])
+        return True, ''
 
     command = 'conda build {0} {1}'.format(combine_args(args), metadata.env.pkgdir).split()
+    callbacks = [check_bad_egg]
 
     try:
-        run_process(command, check_bad_egg)
-    #OK Conda, let's play rough. stdout/stderr only, no exit for you.
+        run_process(command, callbacks)
     except SystemExit:
         print('Discarding SystemExit issued by setuptools')
     except CalledProcessError as cpe:

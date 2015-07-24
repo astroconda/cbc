@@ -1,5 +1,6 @@
+import os
 from setuptools import setup, find_packages
-from version import get_git_version
+from cbc.extern.version import get_git_version
 
 NAME = 'cbc'
 VERSION = get_git_version()
@@ -10,10 +11,15 @@ package_data = {}
 entry_points['console_scripts'] = [
     'cbc_build = cbc.cli.build:main',
     'cbc_server = cbc.cli.server:main',
+    'cbc_remote_purge = cbc.cli.cbc_remote_purge:main',
 ]
 
 package_data[''] = ['*.txt', '*.md']
 test_suite = 'cbc.tests:main'
+
+cbcpkg = os.path.join('cbc', 'version.py')
+with open(cbcpkg, 'w+') as version_data:
+    version_data.write('__version__ = {0}\n'.format(get_git_version()))
 
 setup(
     name=NAME,
