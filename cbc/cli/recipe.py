@@ -10,7 +10,7 @@ RECIPE_TYPES = ['python',
                'scons',
                'cmake']
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--style', default='python')
     parser.add_argument('--name', default='')
@@ -160,4 +160,8 @@ if errorlevel 1 exit 1
 
     with open(RECIPE, 'w+') as recipe:
         config.write(recipe)
+
+
+if __name__ == '__main__':
+    main()
 
