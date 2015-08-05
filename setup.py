@@ -8,7 +8,8 @@ package_data = {}
 entry_points['console_scripts'] = [
     'cbc_build = cbc.cli.build:main',
     'cbc_server = cbc.cli.server:main',
-    'cbc_remote_purge = cbc.cli.cbc_remote_purge:main',
+    'cbc_recipe = cbc.cli.recipe:main',
+    'cbc_remote_purge = cbc.cli.remote_purge:main',
 ]
 
 package_data[''] = ['*.txt', '*.md']
