@@ -19,7 +19,9 @@ cbcpkg = os.path.join('cbc', 'version.py')
 
 #Omit git hash and let setuptools add a valid build number
 git_version = get_git_version()
-git_version = git_version[:git_version.rfind('-')]
+if git_version.rfind('-') != -1:
+    git_version = git_version[:git_version.rfind('-')]
+
 
 with open(cbcpkg, 'w+') as version_data:
     version_data.write('__version__ = "{0}"\n'.format(git_version))
