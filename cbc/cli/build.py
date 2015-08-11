@@ -2,6 +2,7 @@
 import argparse
 import os
 import traceback
+import sys
 import conda_build.metadata
 import cbc
 from cbc.exceptions import CondaBuildError
@@ -9,6 +10,7 @@ from cbc.exceptions import CondaBuildError
 def main():
     no_upload = ''
     use_local = ''
+    python_version = ''
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--force-rebuild',
@@ -23,6 +25,8 @@ def main():
     parser.add_argument('--use-local',
                         action='store_true',
                         help='Install built package from [...]/conda-bld/pkgs repository')
+    parser.add_argument('--python',
+                        help='Coerce build to use a specific version of python.')
     parser.add_argument('cbcfile',
                         nargs='+',
                         help='CBC metadata')
@@ -49,6 +53,9 @@ def main():
     if args.use_local:
         use_local = '--use-local'
 
+    if args.python:
+        python_version = ' '.join(['--python', args.python])
+
     print('CBC_HOME is {0}'.format(env.cbchome))
     # Perform build(s)
     for cbcfile in args.cbcfile:
@@ -69,12 +76,18 @@ def main():
         print('Generating Conda metadata...')
         conda_metadata = conda_build.metadata.MetaData(env.pkgdir)
 
+        python_version_ours = '.'.join([ str(sys.version_info.major), str(sys.version_info.minor) ])
+        python_version_want = '.'.join(python_version.split()[1:])
+
+        if python_version_want != python_version_ours:
+            args.force_rebuild = True
+
         if not args.force_rebuild:
             if cbc.utils.conda_search(conda_metadata) == conda_metadata.dist():
                 print('{0} matches an installed package; increment the build number to rebuild or use --force-rebuild.'.format(conda_metadata.dist()))
                 continue
 
-        conda_builder_args = [no_upload, use_local]
+        conda_builder_args = [no_upload, use_local, python_version]
         try:
             print('Initializing Conda build...')
             built = cbc.utils.conda_builder(metadata, conda_builder_args)
