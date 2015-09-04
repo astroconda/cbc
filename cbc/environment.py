@@ -20,7 +20,7 @@ class Environment(object):
         self.pwd = os.path.abspath(os.curdir)
         self.pkgdir = None
         self.rcpath = os.path.expanduser('~/.cbcrc')
-        self.configrc = None
+        self.configrc = CBCConfigParser(interpolation=ExtendedInterpolation())
 
         if 'CBC_HOME' in kwargs:
             self.cbchome = kwargs['CBC_HOME']
@@ -32,7 +32,6 @@ class Environment(object):
 
         if os.path.exists(self.rcpath):
             if os.path.isfile(self.rcpath):
-                self.configrc = CBCConfigParser(interpolation=ExtendedInterpolation())
                 self.configrc.read(self.rcpath)
 
         if 'settings' in self.configrc.sections():
