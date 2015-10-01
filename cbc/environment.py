@@ -30,22 +30,23 @@ class Environment(object):
         if 'CBC_HOME' in self.environ:
             self.cbchome = self.environ['CBC_HOME']
 
-        if os.path.exists(self.rcpath):
-            if os.path.isfile(self.rcpath):
-                self.configrc.read(self.rcpath)
-
-        if 'settings' in self.configrc.sections():
-            if 'path' in self.configrc['settings']:
-                self.cbchome = self.configrc['settings']['path']
-                if not self.cbchome:
-                    raise IncompleteEnv('.cbcrc empty path detected. Check: settings -> path')
-
+        # A few hard-coded defaults pertaining to the seldom-used internal web server
         self.configrc['cbc_cgi'] = {}
         self.configrc['cbc_cgi']['local_server'] = 'true'
         self.configrc['cbc_cgi']['local_port'] = '8888'
         self.configrc['cbc_cgi']['local_sources'] = os.path.expanduser('~')
         self.configrc['cbc_cgi']['protocol'] = 'http'
         self.configrc['cbc_cgi']['url'] = '{0}://localhost:{1}'.format(self.configrc['cbc_cgi']['protocol'], self.configrc['cbc_cgi']['local_port'])
+
+        if os.path.exists(self.rcpath):
+            if os.path.isfile(self.rcpath):
+                self.configrc.read(self.rcpath)
+
+            if 'settings' in self.configrc.sections():
+                if 'path' in self.configrc['settings']:
+                    self.cbchome = self.configrc['settings']['path']
+                    if not self.cbchome:
+                        raise IncompleteEnv('.cbcrc empty path detected. Check: settings -> path')
 
         if self.cbchome is None:
             raise IncompleteEnv('CBC_HOME is undefined.')
