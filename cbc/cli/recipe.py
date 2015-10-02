@@ -72,7 +72,7 @@ if errorlevel 1 exit 1
     if not METAPACKAGE:
         config['source'] = {}
         config['source']['fn'] = '${package:name}-${package:version}.tar.gz'
-        config['source']['url'] = '${package:home}/${fn}'
+        config['source']['url'] = '${about:home}/${fn}'
         if args.use_git:
             config['source']['git_url'] = ''
             config['source']['git_tag'] = ''
