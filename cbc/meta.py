@@ -27,7 +27,7 @@ class MetaData(object):
         self.builtins = ['cbc_build', 'cbc_cgi', 'settings', 'environ']
 
         self.fields = self.convert_conda_fields(conda_build.metadata.FIELDS)
-        self.config = CBCConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True)
+        self.config = CBCConfigParser(interpolation=ExtendedInterpolation(), allow_no_value=True, comment_prefixes='#')
 
         # Include built-in Conda metadata fields
         self.config.read_dict(self.fields)
