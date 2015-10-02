@@ -1,6 +1,7 @@
 import os
 from setuptools import setup, find_packages
 from cbc.extern.version import get_git_version
+from glob import glob
 
 entry_points = {}
 package_data = {}
@@ -12,6 +13,7 @@ entry_points['console_scripts'] = [
     'cbc_remote_purge = cbc.cli.remote_purge:main',
 ]
 
+bash_scripts = glob('scripts/*')
 package_data[''] = ['*.txt', '*.md']
 test_suite = 'cbc.tests:main'
 
@@ -43,6 +45,7 @@ setup(
     use_2to3=False,
     packages=find_packages(),
     entry_points=entry_points,
+    scripts=bash_scripts,
     package_data=package_data,
     test_suite=test_suite,
 )
