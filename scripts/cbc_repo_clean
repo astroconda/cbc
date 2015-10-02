@@ -1,0 +1,27 @@
+#!/bin/bash
+EXEC_PATH=$(dirname "${BASH_SOURCE[0]}")
+source "$EXEC_PATH/cbc_functions.inc"
+
+CONDA_BUILD=$(get_conda_build)
+REPO=$(get_conda_repo)
+
+if [ ! -d "$CONDA_BUILD" ]; then
+    echo "Oops... No conda-bld directory"
+    exit 1
+fi
+
+if [ ! -d "$REPO" ]; then
+    echo "No local repo found."
+    exit 1
+fi
+
+echo "This operation will destory conda's local package repository."
+echo -n "Do you wish to continue? [y/N]: "
+if [ `user_choice` -ne 0 ]; then
+    echo "Aborting."
+    exit 255
+fi
+
+cd "$REPO"
+rm -rf *.bz2
+conda index .

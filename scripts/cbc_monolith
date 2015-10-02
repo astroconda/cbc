@@ -1,0 +1,147 @@
+#!/bin/bash
+EXEC_PATH=$(dirname "${BASH_SOURCE[0]}")
+source "$EXEC_PATH/cbc_functions.inc"
+LOGFILE="monolith.log"
+LOGFILE_PREV="$LOGFILE.prev"
+start_pos=
+
+PYTHON_VERSION="3.4"
+NUMPY_VERSION="1.9"
+
+function usage {
+    echo "usage: $(basename $0) {manifest} [-pnco]
+    manifest                List of recipes to build (in order)
+    --python            -p  Version to pass to conda-build
+    --numpy             -n  Version to pass to conda-build
+    --cbc-recipes       -c  Path to CBC recipes directory
+    --cbc-output-dir    -o  Path to CONDA recipes
+    "
+}
+
+function build_restart {
+    if [ -f "$LOGFILE" ]; then
+        echo "Build restarting..."
+        cp -av "$LOGFILE" $LOGFILE.prev
+        sync
+        export start_pos=$(tail -n 1 "$LOGFILE_PREV" | tr -d ' ')
+    fi
+}
+
+function build_prepare {
+    echo "Translating CBC recipes..."
+    cbc_build --no-build $(echo $CBC_RECIPES/*/*.ini)
+    _OK=`success`
+    if [ $_OK -ne 0 ]; then
+        echo "Something went wrong with cbc_build..."
+        exit 1
+    fi
+}
+
+function build() {
+    CWD=`pwd`
+    while read recipe
+    do
+        if [ -n "$start_pos" ]; then
+            if [[ $recipe != $start_pos ]]; then
+                echo "Skipping: $recipe"
+                continue 
+            else
+                # Iterate through remaining recipes
+                unset start_pos
+            fi
+        fi
+    
+        cd "$CBC_HOME"
+    
+        conda build \
+            --no-binstar-upload \
+            --python $PYTHON_VERSION \
+            --numpy $NUMPY_VERSION \
+            --override-channels -c defaults "$recipe"
+    
+        _OK=`success`
+        if [ $_OK -ne 0 ]; then
+            echo
+            echo "Monolithic build failure..."
+            echo "Cause:"
+            echo "    $recipe"
+    
+            cd "$CWD"
+            exit $_OK
+        fi
+    done < "$MANIFEST"
+    cd "$CWD"
+}
+
+function bad_arg {
+    usage
+    echo "Bad argument: $@"
+    exit 1
+}
+
+ARGC="${#}"
+if [[ ${ARGC} < 1 ]]; then
+    usage
+    exit 1
+fi
+
+MANIFEST="$1"
+if [ ! -f "$MANIFEST" ]; then
+    echo "\"$MANIFEST\" does not exist."
+    exit 1
+fi
+
+
+# MAIN
+shift
+while [ $# -gt 0 ];
+do
+    case "$1" in
+        '')
+            usage
+            exit 1
+        ;;
+        --python|-p)
+            PYTHON_VERSION="$2"
+            if [ -z "$PYTHON_VERSION" ]; then
+                bad_arg "Missing python version."
+            fi
+            shift
+        ;;
+        --numpy|-n)
+            NUMPY_VERSION="$2"
+            if [ -z "$NUMPY_VERSION" ]; then
+                bad_arg "Missing numpy version."
+            fi
+            shift
+        ;;
+        --cbc-recipes|-c)
+            CBC_RECIPES="$2"
+            if [ -z "$CBC_RECIPES" ]; then
+                bad_arg "Missing recipe directory."
+            fi
+            shift
+        ;;
+        --cbc-output-dir|-o)
+            CBC_HOME="$2"
+            if [ -z "$CBC_HOME" ]; then
+                bad_arg "Missing conda recipe directory."
+            fi
+            shift
+        ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            exit 1
+        ;;
+    esac
+    shift
+done
+
+# DO NOT LOG THIS...
+build_prepare
+build_restart
+
+# LOG THIS
+( build ) 2>&1 | tee "$LOGFILE"
+

@@ -1,0 +1,16 @@
+#!/bin/bash
+EXEC_PATH=$(dirname "${BASH_SOURCE[0]}")
+source "$EXEC_PATH/cbc_functions.inc"
+
+get_os_info
+REPO="$(get_conda_repo)"
+REPO_NEW="$OS-$ARCH"
+
+if [ -d "$REPO_NEW" ]; then
+    rm -rf "$REPO_NEW"
+fi
+
+mkdir -p $REPO_NEW
+rsync -aH --progress "$REPO"/ "$REPO_NEW"
+cd "$REPO_NEW"
+conda index .
