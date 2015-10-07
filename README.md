@@ -362,7 +362,7 @@ Below we will discuss two ways to use `cbc_monolith`, depending on your needs...
 
 ## Configuration
 
-As mentioned earlier this script requires both `CBC_HOME` and `CBC_RECIPES` be defined in your environment. It is also possible to pass these paths as arguments at run-time by issuing `--cbc-output-dir` and `--cbc-recipe-dir` respectively.
+As mentioned earlier this script requires both `CBC_HOME` and `CBC_RECIPES` be defined in your environment. It is also possible to pass these paths as arguments at run-time by issuing `--cbc-output-dir` and `--cbc-recipes` respectively.
 
 It is recommended `cbc_monolith` be executed from its own directory, because the log file(s) as well as input files generally create a lot of clutter.
 
