@@ -3,16 +3,22 @@ EXEC_PATH=$(dirname "${BASH_SOURCE[0]}")
 source "$EXEC_PATH/cbc_functions.inc"
 LOGFILE="monolith.log"
 LOGFILE_PREV="$LOGFILE.prev"
+TMPDIR=/tmp
 start_pos=
 
 PYTHON_VERSION="3.4"
 NUMPY_VERSION="1.9"
+BRANCH=""
+BRANCH_MANIFEST=""
+
 
 function usage {
     echo "usage: $(basename $0) {manifest} [-pnco]
     manifest                List of recipes to build (in order)
     --python            -p  Version to pass to conda-build
     --numpy             -n  Version to pass to conda-build
+    --branch            -b  Build from a branch (or tag)
+    --branch-manifest       List containing git_url patterns
     --cbc-recipes       -c  Path to CBC recipes directory
     --cbc-output-dir    -o  Path to CONDA recipes
     "
@@ -34,6 +40,62 @@ function build_prepare {
     if [ $_OK -ne 0 ]; then
         echo "Something went wrong with cbc_build..."
         exit 1
+    fi
+
+    if [ -n "$BRANCH" ]; then
+        build_prepare_branch
+    fi
+
+}
+
+function build_prepare_branch()
+{
+    # This works, mostly. I need to implement a whitelist for git_url entries.
+    echo Building from branch: $BRANCH
+    CBC_HOME_ORIG="$CBC_HOME"
+    export CBC_HOME="$(mktemp -u -d)"
+    mkdir -pv "$CBC_HOME"
+
+    echo "CBC_HOME=$CBC_HOME"
+    rsync -av "$CBC_HOME_ORIG/" "$CBC_HOME"
+
+
+    # Redundant code alert... ugh (WILL FIX)
+
+    if [ -n "$BRANCH_MANIFEST" ]; then
+        while read pattern
+        do
+            for f in `find $CBC_HOME -type f -name "*.yaml"`
+            do
+                grep "$pattern" "$f" 2>/dev/null
+                _OK=`success`
+                if [ $_OK -eq 0 ]; then
+                    echo "Applying branch: $f"
+                    sed -i 's|git_tag|#git_tag|g' "$f" 2>/dev/null
+                    sed -i "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" 2>/dev/null
+                fi
+            done
+        done < "$BRANCH_MANIFEST"
+    else
+        for f in `find $CBC_HOME -type f -name "*.yaml"`
+        do
+            grep "git_url" "$f" 2>/dev/null
+            _OK=`success`
+            if [ $_OK -eq 0 ]; then
+                echo "Applying branch: $f"
+                sed -i 's|git_tag|#git_tag|g' "$f" 2>/dev/null
+                sed -i "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" 2>/dev/null
+            fi
+        done
+    fi
+}
+
+function build_cleanup {
+    if [ -n "$BRANCH" ]; then
+        if [[ $CBC_RECIPES == *$TMPDIR* ]]; then
+            echo "Removing temporary branch data..."
+            rm -rf "$CBC_RECIPES"
+        fi
     fi
 }
 
@@ -115,6 +177,20 @@ do
             fi
             shift
         ;;
+        --branch|-b)
+            BRANCH="$2"
+            if [ -z "$BRANCH" ]; then
+                bad_arg "Missing branch name."
+            fi
+            shift
+        ;;
+        --branch-manifest)
+            BRANCH_MANIFEST="$2"
+            if [ -z "$BRANCH_MANIFEST" ]; then
+                bad_arg "Missing branch manifest filename."
+            fi
+            shift
+        ;;
         --cbc-recipes|-c)
             CBC_RECIPES="$2"
             if [ -z "$CBC_RECIPES" ]; then
@@ -145,3 +221,4 @@ build_restart
 # LOG THIS
 ( build ) 2>&1 | tee "$LOGFILE"
 
+build_cleanup
