@@ -57,7 +57,14 @@ function build_prepare_branch()
     mkdir -pv "$CBC_HOME"
 
     echo "CBC_HOME=$CBC_HOME"
-    rsync -av "$CBC_HOME_ORIG/" "$CBC_HOME"
+    rsync -a "$CBC_HOME_ORIG/" "$CBC_HOME"
+
+    _OK=`success`
+    if [ $_OK -ne 0 ]; then
+        echo "Failed to transfer: $CBC_HOME_ORIG -> $CBC_HOME"
+        echo "Aborting..."
+        exit 1
+    fi
 
 
     # Redundant code alert... ugh (WILL FIX)
@@ -67,24 +74,24 @@ function build_prepare_branch()
         do
             for f in `find $CBC_HOME -type f -name "*.yaml"`
             do
-                grep "$pattern" "$f" 2>/dev/null
+                grep "$pattern" "$f" >/dev/null
                 _OK=`success`
                 if [ $_OK -eq 0 ]; then
-                    echo "Applying branch: $f"
-                    sed -i 's|git_tag|#git_tag|g' "$f" 2>/dev/null
-                    sed -i "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" 2>/dev/null
+                    echo "Applying branch: $BRANCH -> $(dirname $f)"
+                    sed -i 's|git_tag|#git_tag|g' "$f" >/dev/null
+                    sed -i "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" >/dev/null
                 fi
             done
         done < "$BRANCH_MANIFEST"
     else
         for f in `find $CBC_HOME -type f -name "*.yaml"`
         do
-            grep "git_url" "$f" 2>/dev/null
+            grep "git_url" "$f" >/dev/null
             _OK=`success`
             if [ $_OK -eq 0 ]; then
-                echo "Applying branch: $f"
-                sed -i 's|git_tag|#git_tag|g' "$f" 2>/dev/null
-                sed -i "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" 2>/dev/null
+                echo "Applying branch $BRANCH -> $(dirname $f)"
+                sed -i 's|git_tag|#git_tag|g' "$f" >/dev/null
+                sed -i "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" >/dev/null
             fi
         done
     fi
@@ -168,6 +175,7 @@ do
             if [ -z "$PYTHON_VERSION" ]; then
                 bad_arg "Missing python version."
             fi
+            export PYTHON_VERSION
             shift
         ;;
         --numpy|-n)
@@ -175,6 +183,7 @@ do
             if [ -z "$NUMPY_VERSION" ]; then
                 bad_arg "Missing numpy version."
             fi
+            export NUMPY_VERSION
             shift
         ;;
         --branch|-b)
@@ -182,6 +191,7 @@ do
             if [ -z "$BRANCH" ]; then
                 bad_arg "Missing branch name."
             fi
+            export BRANCH
             shift
         ;;
         --branch-manifest)
@@ -189,6 +199,7 @@ do
             if [ -z "$BRANCH_MANIFEST" ]; then
                 bad_arg "Missing branch manifest filename."
             fi
+            export BRANCH_MANIFEST
             shift
         ;;
         --cbc-recipes|-c)
@@ -196,6 +207,7 @@ do
             if [ -z "$CBC_RECIPES" ]; then
                 bad_arg "Missing recipe directory."
             fi
+            export CBC_RECIPES
             shift
         ;;
         --cbc-output-dir|-o)
@@ -203,6 +215,7 @@ do
             if [ -z "$CBC_HOME" ]; then
                 bad_arg "Missing conda recipe directory."
             fi
+            export CBC_HOME
             shift
         ;;
         *)
