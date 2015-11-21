@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import os
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('repodata', action='store')
+    args = parser.parse_args()
+
+    filename = args.repodata
+
+    if '.json' not in os.path.splitext(filename)[1]:
+        print("JSON formatted file required.")
+        exit(1)
+
+    repodata = None
+    with open(filename, 'r') as data:
+        repodata = json.load(data)
+
+    if repodata is None:
+        print("Invalid JSON file.")
+        exit(1)
+
+    print('<html>')
+    print('<head>')
+    print('<title>Repository Contents</title>')
+    print('</head>')
+    print('<body')
+    print('<pre>')
+    for key, subdict in sorted(repodata['packages'].items()):
+        print("{0:50s} {1:>40s} {2:>20d}kb".format(key, subdict['md5'], subdict['size']))
+    print('</pre>')
+    print('</body>')
+    print('</html>')
