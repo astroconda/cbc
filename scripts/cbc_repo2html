@@ -28,7 +28,7 @@ if __name__ == '__main__':
     print('<head>')
     print('<title>Repository Contents</title>')
     print('</head>')
-    print('<body')
+    print('<body>')
     print('<pre>')
     for key, subdict in sorted(repodata['packages'].items()):
         print("{0:50s} {1:>40s} {2:>20d}kb".format(key, subdict['md5'], subdict['size']))
