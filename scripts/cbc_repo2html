@@ -5,6 +5,47 @@ import json
 import os
 
 
+def table_from_dict(data):
+    headers = ['subdir',
+                'name',
+                'version',
+                'build',
+                'build_number',
+                'license',
+                'depends',
+                'md5',
+                'sig',
+                'size']
+
+    html = '<table>'
+
+    for header in headers:
+        html += '<th>' + header.upper() + '</th>'
+
+    for pkg_name, pkg_info in sorted(data.items()):
+        html += '<tr>'
+        html += '<tr>'
+        for header in headers:
+            if header not in pkg_info.keys():
+                pkg_info[header] = '-'
+
+            for key, value in pkg_info.items():
+                if value is None or not value:
+                    value = '-'
+                if key == header:
+                    if isinstance(value, list):
+                        html += '<td>'
+                        for record in sorted(value):
+                            html += '<li>' + record + '</li>'
+                        html += '</td>'
+                    else:
+                        html += '<td>' + str(value) + '</td>'
+
+        html += '</tr>'
+    html += '</tr>'
+    html += '</table>'
+    return html
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('repodata', action='store')
@@ -28,10 +69,25 @@ if __name__ == '__main__':
     print('<head>')
     print('<title>Repository Contents</title>')
     print('</head>')
+    print('<style>')
+    print('''
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    
+    th, td {
+        width: 5%;
+        padding: 8px;
+        text-align: left;
+        /*border-bottom: 1px solid #ddd;*/
+        border: 1px solid #ddd;
+    }
+    ''')
+    print('</style>')
     print('<body>')
-    print('<pre>')
-    for key, subdict in sorted(repodata['packages'].items()):
-        print("{0:50s} {1:>40s} {2:>20d}kb".format(key, subdict['md5'], subdict['size']))
-    print('</pre>')
+    #for key, subdict in sorted(repodata['packages'].items()):
+    #    print("{0:50s} {1:>40s} {2:>20d}kb".format(key, subdict['md5'], subdict['size']))
+    print(table_from_dict(repodata['packages']))
     print('</body>')
     print('</html>')
