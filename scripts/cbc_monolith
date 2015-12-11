@@ -1,6 +1,9 @@
 #!/bin/bash
 EXEC_PATH=$(dirname "${BASH_SOURCE[0]}")
 source "$EXEC_PATH/cbc_functions.inc"
+# declare $OS and $ARCH (don't touch)
+get_os_info
+
 LOGFILE="monolith.log"
 LOGFILE_PREV="$LOGFILE.prev"
 TMPDIR=/tmp
@@ -50,10 +53,22 @@ function build_prepare {
 
 function build_prepare_branch()
 {
-    # This works, mostly. I need to implement a whitelist for git_url entries.
     echo Building from branch: $BRANCH
     CBC_HOME_ORIG="$CBC_HOME"
-    export CBC_HOME="$(mktemp -u -d)"
+
+    mktemp_args=
+    case "$OS" in
+        osx)
+        export mktemp_args="-d -u -t $(basename $0)"
+        ;;
+        linux)
+        export mktemp_args="-u -d"
+        ;;
+        *)
+        ;;
+    esac
+
+    export CBC_HOME="$(mktemp $mktemp_args)"
     mkdir -pv "$CBC_HOME"
 
     echo "CBC_HOME=$CBC_HOME"
@@ -69,6 +84,11 @@ function build_prepare_branch()
 
     # Redundant code alert... ugh (WILL FIX)
 
+    is_osx=
+    if [[ $OS == "osx" ]]; then
+        export is_osx=".orig"
+    fi
+
     if [ -n "$BRANCH_MANIFEST" ]; then
         while read pattern
         do
@@ -78,8 +98,8 @@ function build_prepare_branch()
                 _OK=`success`
                 if [ $_OK -eq 0 ]; then
                     echo "Applying branch: $BRANCH -> $(dirname $f)"
-                    sed -i 's|git_tag|#git_tag|g' "$f" >/dev/null
-                    sed -i "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" >/dev/null
+                    sed -i$is_osx 's|git_tag|#git_tag|g' "$f" >/dev/null
+                    sed -i$is_osx "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" >/dev/null
                 fi
             done
         done < "$BRANCH_MANIFEST"
@@ -90,8 +110,8 @@ function build_prepare_branch()
             _OK=`success`
             if [ $_OK -eq 0 ]; then
                 echo "Applying branch $BRANCH -> $(dirname $f)"
-                sed -i 's|git_tag|#git_tag|g' "$f" >/dev/null
-                sed -i "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" >/dev/null
+                sed -i$is_osx 's|git_tag|#git_tag|g' "$f" >/dev/null
+                sed -i$is_osx "/git_url/ a \ \ \ \ git_tag: '$BRANCH'" "$f" >/dev/null
             fi
         done
     fi
@@ -226,6 +246,7 @@ do
     esac
     shift
 done
+
 
 # DO NOT LOG THIS...
 build_prepare

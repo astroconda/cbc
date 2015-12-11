@@ -36,12 +36,28 @@ function user_choice {
 
 }
 
+function pyreadlink {
+    TARGET="$1"
+    python -c "import os; print(os.path.realpath('${TARGET}'))"
+}
+
 function get_conda_build {
     _OK=`program_exists conda`
     if [ ! $_OK ]; then
         echo ''
     fi
-    echo $( echo $( readlink -f $(dirname `which conda`)/../conda-bld ) )
+
+    get_os_info
+    case "$OS" in
+        osx)
+            pyreadlink $(dirname `which conda`)/../conda-bld
+        ;;
+        linux)
+            readlink -f $(dirname `which conda`)/../conda-bld
+        ;;
+        *)
+        ;;
+    esac
 }
 
 function get_conda_repo {
