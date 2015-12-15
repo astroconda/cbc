@@ -6,11 +6,10 @@ get_os_info
 REPO="$(get_conda_repo)"
 REPO_NEW="$OS-$ARCH"
 
-if [ -d "$REPO_NEW" ]; then
-    rm -rf "$REPO_NEW"
+if [ ! -d "$REPO_NEW" ]; then
+    mkdir -p "$REPO_NEW"
 fi
 
-mkdir -p $REPO_NEW
 rsync -aH --progress "$REPO"/ "$REPO_NEW"
 cd "$REPO_NEW"
 conda index .
