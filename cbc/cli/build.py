@@ -56,10 +56,9 @@ def main():
     if args.python:
         python_version = ' '.join(['--python', args.python])
 
-    print('CBC_HOME is {0}'.format(env.cbchome))
+    print('CBC_HOME={0}'.format(env.cbchome))
     # Perform build(s)
     for cbcfile in args.cbcfile:
-        print('Using cbc build configuration: {0}'.format(cbcfile))
         # Ensure the working directory remains the same throughout.
         os.chdir(env.pwd)
 
@@ -68,7 +67,7 @@ def main():
         metadata.render_scripts()
         metadata.copy_patches()
 
-        print('Scripts written to {0}'.format(metadata.env.pkgdir))
+        print('-> {0}'.format(metadata.env.pkgdir))
 
         if args.no_build:
             continue
