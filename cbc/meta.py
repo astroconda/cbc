@@ -44,7 +44,7 @@ class MetaData(object):
         self.local = self.as_dict(self.config)
 
         #Field list conversion table taken from conda_build.metadata:
-        for field in ('source/patches',
+        for field in ('source/patches', 'source/url',
                       'build/entry_points', 'build/script_env',
                       'build/features', 'build/track_features',
                       'requirements/build', 'requirements/run',
