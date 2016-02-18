@@ -13,6 +13,8 @@ PYTHON_VERSION="3.4"
 NUMPY_VERSION="1.9"
 BRANCH=""
 BRANCH_MANIFEST=""
+TRACK_CHANNEL=""
+STOP_ON_FAILURE="yes"
 
 
 function usage {
@@ -22,6 +24,8 @@ function usage {
     --numpy             -n  Version to pass to conda-build
     --branch            -b  Build from a branch (or tag)
     --branch-manifest       List containing git_url patterns
+    --track-channel     -t  Build against remote repo
+    --keep-going        -k  Do not stop on first failure
     --cbc-recipes       -c  Path to CBC recipes directory
     --cbc-output-dir    -o  Path to CONDA recipes
     "
@@ -141,12 +145,19 @@ function build() {
         fi
     
         cd "$CBC_HOME"
-    
-        conda build \
+        TC=" "
+        if [ -n "$TRACK_CHANNEL" ]; then
+            TC="-c $TRACK_CHANNEL"
+        fi
+
+        set -x
+        conda build -q \
             --no-binstar-upload \
             --python $PYTHON_VERSION \
             --numpy $NUMPY_VERSION \
-            --override-channels -c defaults "$recipe"
+            --override-channels -c defaults \
+            $TC \
+            "$recipe"
     
         _OK=`success`
         if [ $_OK -ne 0 ]; then
@@ -155,8 +166,15 @@ function build() {
             echo "Cause:"
             echo "    $recipe"
     
-            cd "$CWD"
-            exit $_OK
+            if [[ $STOP_ON_FAILURE == "yes" ]]; then
+                cd "$CWD"
+                exit $_OK
+            else
+                echo
+                echo "Proceeding to next package..."
+                echo
+                continue
+            fi
         fi
     done < "$MANIFEST"
     cd "$CWD"
@@ -222,6 +240,14 @@ do
             export BRANCH_MANIFEST
             shift
         ;;
+        --track-channel|-t)
+            TRACK_CHANNEL="$2"
+            if [ -z "$TRACK_CHANNEL" ]; then
+                bad_arg "Missing remote repoistory URL."
+            fi
+            export TRACK_CHANNEL
+            shift
+        ;;
         --cbc-recipes|-c)
             CBC_RECIPES="$2"
             if [ -z "$CBC_RECIPES" ]; then
@@ -237,6 +263,9 @@ do
             fi
             export CBC_HOME
             shift
+        ;;
+        --keep-going|-k)
+            STOP_ON_FAILURE="no"
         ;;
         *)
             echo "Unknown option: $1"
