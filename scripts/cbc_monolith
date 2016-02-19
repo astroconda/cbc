@@ -158,6 +158,7 @@ function build() {
             --override-channels -c defaults \
             $TC \
             "$recipe"
+        set +x
     
         _OK=`success`
         if [ $_OK -ne 0 ]; then
