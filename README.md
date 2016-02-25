@@ -1,6 +1,6 @@
 # Conda Build Control
 
-[toc]
+[![Build Status](https://travis-ci.org/jhunkeler/cbc.svg?branch=master)](https://travis-ci.org/jhunkeler/cbc)
 
 At this stage in the game, "Conda Build Control" is a misnomer of sorts. Having originally set out to write a build system with little internal knowledge of how Conda worked, I quickly realized there were **very** few wheels that really needed to be reinvented.
 
@@ -38,7 +38,7 @@ Instead, cbc consolidates the layout and allows you to focus all recipe-related 
 CBC requires Python 3, and will not work under Python 2.
 
 ```bash
-git clone https://bitbucket.org/exampleeler/cbc
+git clone https://bitbucket.org/jhunkeler/cbc
 ```
 
 ```bash
@@ -57,7 +57,7 @@ The following repository provides the recipes maintained by STScI. Keep in mind,
 
 ```bash
 cd ~
-git clone https://bitbucket.org/exampleeler/cbc-recipes
+git clone https://bitbucket.org/jhunkeler/cbc-recipes
 ```
 
 # Configuration
@@ -121,7 +121,7 @@ summary: ${package:name} is a test package
 
 [source]
 fn: ${package:name}-${package:version}.tar.gz
-url: https://bitbucket.org/exampleeler/cbc-recipes/downloads/${fn}
+url: https://bitbucket.org/jhunkeler/cbc-recipes/downloads/${fn}
 
 [build]
 number: 1
@@ -214,7 +214,7 @@ requirements:
     - python
 source:
     fn: cbc_test_package-1.0.0.tar.gz
-    url: https://bitbucket.org/exampleeler/cbc-recipes/downloads/cbc_test_package-1.0.0.tar.gz
+    url: https://bitbucket.org/jhunkeler/cbc-recipes/downloads/cbc_test_package-1.0.0.tar.gz
 test:
     imports:
     - cbc_test_package
