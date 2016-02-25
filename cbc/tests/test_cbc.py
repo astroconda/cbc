@@ -58,7 +58,7 @@ class TestCBC(object):
         # Test against conda's build system
         conda_meta = conda_build.metadata.MetaData(self.env.pkgdir)
         nose.tools.assert_is_instance(conda_meta, conda_build.metadata.MetaData)
-        nose.tools.assert_equal(conda_meta.dist(), 'test-1.0.0-py34_1')
+        nose.tools.assert_equal(conda_meta.dist(), 'test-1.0.0-'+conda_meta.build_id())
 
 
 
