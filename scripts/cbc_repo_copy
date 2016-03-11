@@ -10,6 +10,6 @@ if [ ! -d "$REPO_NEW" ]; then
     mkdir -p "$REPO_NEW"
 fi
 
-rsync -aH --progress "$REPO"/ "$REPO_NEW"
+rsync -aH --progress --exclude='repodata*' --exclude='.index.json' "$REPO"/ "$REPO_NEW"
 cd "$REPO_NEW"
 conda index .
