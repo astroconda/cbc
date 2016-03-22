@@ -15,6 +15,7 @@ BRANCH=""
 BRANCH_MANIFEST=""
 TRACK_CHANNEL=""
 STOP_ON_FAILURE="yes"
+SKIP_EXISTING="no"
 
 
 function usage {
@@ -25,6 +26,7 @@ function usage {
     --branch            -b  Build from a branch (or tag)
     --branch-manifest       List containing git_url patterns
     --track-channel     -t  Build against remote repo
+    --skip-existing     -s  Skip packages that already exist
     --keep-going        -k  Do not stop on first failure
     --cbc-recipes       -c  Path to CBC recipes directory
     --cbc-output-dir    -o  Path to CONDA recipes
@@ -150,13 +152,18 @@ function build() {
             TC="-c $TRACK_CHANNEL"
         fi
 
+        SE=" "
+        if [[ "$SKIP_EXISTING" == "yes" ]]; then
+            SE="--skip-existing"
+        fi
+
         set -x
         conda build -q \
-            --no-binstar-upload \
+            --no-anaconda-upload \
             --python $PYTHON_VERSION \
             --numpy $NUMPY_VERSION \
-            --override-channels -c defaults \
             $TC \
+            $SE \
             "$recipe"
         set +x
     
@@ -267,6 +274,9 @@ do
         ;;
         --keep-going|-k)
             STOP_ON_FAILURE="no"
+        ;;
+        --skip-existing|-s)
+            SKIP_EXISTING="yes"
         ;;
         *)
             echo "Unknown option: $1"
